@@ -214,7 +214,7 @@ class HomeState extends ConsumerState<Home> {
                           ),
                         )
                       )
-                    : Padding(
+                    : Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: KeyEntry(
                         entryData: filteredKeys[index],

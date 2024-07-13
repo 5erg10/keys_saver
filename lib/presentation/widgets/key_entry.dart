@@ -18,17 +18,15 @@ class KeyEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context){
-
-    return InkWell(
-      onTap: () => onkeySelected != null ? onkeySelected!(entryData.id) : null, // context.push('/keyDetails/${ entryData.id }');
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 100),
-        margin: const EdgeInsets.only(top: 10.0),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(width: 1.0, color: Theme.of(context).primaryColor)
-          )
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(width: 1.0, color: Theme.of(context).primaryColor)
+        )
+      ),
+      width: 50,
+      child: InkWell(
+        onTap: () => onkeySelected != null ? onkeySelected!(entryData.id) : null, // context.push('/keyDetails/${ entryData.id }');
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 20.0),
           child: Row(
@@ -60,7 +58,7 @@ class KeyEntry extends StatelessWidget {
               )
             ],
           ),
-        )
+        ),
       ),
     );
   }
