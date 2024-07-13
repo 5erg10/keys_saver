@@ -1,3 +1,3 @@
 # keys_saver
 
-A new Flutter project.
+Keep safe your credentials in the safer place, encrypted inside your device.
