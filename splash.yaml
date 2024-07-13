@@ -1,0 +1,16 @@
+# flutter_native_splash-development.yaml
+flutter_native_splash:
+  color: "#688cb3"
+  image: assets/icons/keys_logo_512_transparent.png
+  branding: assets/icons/keys_logo_text_transparent.png
+  color_dark: "#688cb3"
+  image_dark: assets/icons/keys_logo_512_transparent.png
+  branding_dark:  assets/icons/keys_logo_text_transparent.png
+
+  android_12:
+    image: assets/icons/keys_logo_512_transparent.png
+    icon_background_color: "#688cb3"
+    image_dark: assets/icons/keys_logo_512_transparent.png
+    icon_background_color_dark: "#688cb3"
+
+  web: false
