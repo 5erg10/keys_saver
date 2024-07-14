@@ -139,7 +139,7 @@ class HomeState extends ConsumerState<Home> {
     }
 
     return Scaffold(
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton(
         onPressed: () { 
           restartValues();
