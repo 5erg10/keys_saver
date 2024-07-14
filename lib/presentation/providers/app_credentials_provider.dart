@@ -8,41 +8,26 @@ final credentialsProvider = StateNotifierProvider.autoDispose<CredentialsNotifie
 });
 
 class CredentialsNotifier extends StateNotifier<CredentialsState> {
-
   final dataRepository = IsarRepository(IsarDatasource());
 
   CredentialsNotifier(super.state);
 
-  void recoverCredentials() async {
-
-    final userCredentials = await dataRepository.recoverCredentias();
-
-    if (userCredentials == null) {
-      final AppCredentials userDefault = AppCredentials(user: '', passW: '', passKey: '');
-      saveUserCredentials(userDefault);
-      state = state.copyWith(credentials: userDefault);
-    } else {
-      state = state.copyWith(credentials: userCredentials);
-    }
+  void recoverCredentials(String ncrK) async {
+    final userCredentials = await dataRepository.recoverCredentias(ncrK);
+    state = state.copyWith(credentials: userCredentials);
   }
 
-  void saveUserCredentials(AppCredentials creds) {
-    dataRepository.saveCredentials(creds);
-    recoverCredentials();
+  void saveUserCredentials(AppCredentials creds, String ncrK) {
+    dataRepository.saveCredentials(creds, ncrK);
+    recoverCredentials(ncrK);
   }
 }
 
 class CredentialsState {
-
   final AppCredentials? credentials;
 
-  CredentialsState({
-    this.credentials
-  });
+  CredentialsState({this.credentials});
 
-  CredentialsState copyWith({
-    AppCredentials? credentials
-  }) => CredentialsState(
-    credentials: credentials ?? this.credentials
-  );
+  CredentialsState copyWith({AppCredentials? credentials}) =>
+      CredentialsState(credentials: credentials ?? this.credentials);
 }

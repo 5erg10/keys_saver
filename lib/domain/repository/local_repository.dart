@@ -4,19 +4,19 @@ import 'package:keys_saver/domain/models/keys_collection.dart';
 
 abstract class LocalRepository {
 
-  Future<void> saveKey(KeyValues key);
+  Future<void> saveKey(KeyValues key, String ncrK);
 
-  Future<List<KeyValues>> getSavedKeys();
+  Future<List<KeyValues>> getSavedKeys(String ncrK);
 
   Future<void> removeKey(int keyId);
 
-  Future<void> updateKey(KeyValues key);
+  Future<void> updateKey(KeyValues key, String ncrK);
 
   Future<void> saveAppConfig(AppConfig config);
 
   Future<AppConfig?> recoverAppConfig();
 
-  Future<void> saveCredentials(AppCredentials creds);
+  Future<void> saveCredentials(AppCredentials creds, String ncrK);
 
-  Future<AppCredentials?> recoverCredentias();
+  Future<AppCredentials?> recoverCredentias(String ncrK);
 }

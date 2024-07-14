@@ -11,13 +11,13 @@ class IsarRepository extends LocalRepository {
   IsarRepository(this.dataSource);
 
   @override
-  Future<List<KeyValues>> getSavedKeys() {
-    return dataSource.getSavedKeys();
+  Future<List<KeyValues>> getSavedKeys(String ncrK) {
+    return dataSource.getSavedKeys(ncrK);
   }
 
   @override
-  Future<void> saveKey(KeyValues key) {
-    return dataSource.saveKey(key);
+  Future<void> saveKey(KeyValues key, String ncrK) {
+    return dataSource.saveKey(key, ncrK);
   }
   
   @override
@@ -26,8 +26,8 @@ class IsarRepository extends LocalRepository {
   }
   
   @override
-  Future<void> updateKey(KeyValues key) {
-    return dataSource.updateKey(key);
+  Future<void> updateKey(KeyValues key, String ncrK) {
+    return dataSource.updateKey(key, ncrK);
   }
   
   @override
@@ -41,13 +41,13 @@ class IsarRepository extends LocalRepository {
   }
 
   @override
-  Future<AppCredentials?> recoverCredentias() {
-   return dataSource.recoverCredentias();
+  Future<AppCredentials?> recoverCredentias(String ncrK) {
+   return dataSource.recoverCredentias(ncrK);
   }
 
   @override
-  Future<void> saveCredentials(AppCredentials creds) {
-    return dataSource.saveCredentials(creds);
+  Future<void> saveCredentials(AppCredentials creds, String ncrK) {
+    return dataSource.saveCredentials(creds, ncrK);
   }
 
 }

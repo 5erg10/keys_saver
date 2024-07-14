@@ -27,16 +27,32 @@ class IsarDatasource extends LocalDatasource {
   }
 
   @override
-  Future<List<KeyValues>> getSavedKeys() async {
+  Future<List<KeyValues>> getSavedKeys(String ncrK) async {
     final isar = await db;
-    return isar.keyValues.where().findAll();
+
+    final List<KeyValues> keysList = await isar.keyValues.where().findAll();
+
+    keysList.map((key) {
+      key.passW = EncrypterService.decrypt(key.passW, ncrK);
+      key.user = EncrypterService.decrypt(key.user, ncrK);
+      key.titulo = EncrypterService.decrypt(key.titulo, ncrK);
+      return key;
+    }).toList();
+
+    return keysList;
   }
 
   @override
-  Future<void> saveKey(KeyValues key) async {
+  Future<void> saveKey(KeyValues key, String ncrK) async {
     final isar = await db;
     isar.writeTxnSync(() {
-      isar.keyValues.putSync(KeyValues(titulo: key.titulo, user: key.user, passW: EncrypterService.encrypt(key.passW)));
+      isar.keyValues.putSync(
+        KeyValues(
+          titulo: EncrypterService.encrypt(key.titulo, ncrK),
+          user: EncrypterService.encrypt(key.user, ncrK),
+          passW: EncrypterService.encrypt(key.passW, ncrK)
+        )
+      );
     });
   }
   
@@ -49,11 +65,16 @@ class IsarDatasource extends LocalDatasource {
   }
   
   @override
-  Future<void> updateKey(KeyValues key) async  {
+  Future<void> updateKey(KeyValues key, String ncrK) async  {
     final isar = await db;
     final String originalPass = key.passW;
     isar.writeTxnSync(() {
-      isar.keyValues.putSync(key..passW = EncrypterService.encrypt(key.passW));
+      isar.keyValues.putSync(
+        key
+        ..passW = EncrypterService.encrypt(key.passW, ncrK)
+        ..titulo = EncrypterService.encrypt(key.titulo, ncrK)
+        ..user = EncrypterService.encrypt(key.user, ncrK)
+    );
     });
     key.passW = originalPass;
   }
@@ -74,17 +95,30 @@ class IsarDatasource extends LocalDatasource {
   }
   
   @override
-  Future<AppCredentials?> recoverCredentias() async {
+  Future<AppCredentials?> recoverCredentias(String ncrK) async {
+
     final isar = await db;
-    final data = await isar.appCredentials.where().findAll();
-    return data.isEmpty ? null : data[0];
+
+    final List<AppCredentials> data = await isar.appCredentials.where().findAll();
+
+    if (data.isEmpty) {
+      return AppCredentials(user: '', passW: '', passKey: '');
+    } else {
+      return data[0]
+        ..passW = EncrypterService.decrypt(data[0].passW!, ncrK)
+        ..user = EncrypterService.decrypt(data[0].user!, ncrK);
+    }
   }
   
   @override
-  Future<void> saveCredentials(AppCredentials creds) async {
+  Future<void> saveCredentials(AppCredentials creds, String ncrK) async {
     final isar = await db;
+    final encryptedCreds =  creds
+        ..passW = EncrypterService.encrypt(creds.passW!, ncrK)
+        ..user = EncrypterService.encrypt(creds.user!, ncrK);
+      
     isar.writeTxnSync(() {
-      isar.appCredentials.putSync(creds);
+      isar.appCredentials.putSync(encryptedCreds);
     });
   }
 

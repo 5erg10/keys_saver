@@ -30,7 +30,7 @@ class _UserDataFormState extends State<UserDataForm> {
   bool formIsValid() {
     return widget.userCredentials.user!.isEmpty 
       ? userInputCtrl.text.isNotEmpty && passWInputCtrl.text.isNotEmpty
-      : passWInputCtrl.text.isNotEmpty;
+      : passWInputCtrl.text.isNotEmpty && widget.userCredentials.passW == passWInputCtrl.text;
   }
 
   void onSubmitPressed() {

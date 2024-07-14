@@ -1,22 +1,29 @@
 import 'package:encrypt/encrypt.dart';
 
 class EncrypterService {
-  static final _key = Key.fromUtf8('private key with 32 letters */+-');
-  static final _iv = IV.allZerosOfLength(16);
-  static final _encrypter = Encrypter(AES(_key, mode: AESMode.cbc));
 
-  static String encrypt(String plainText) {
+  static String encrypt(String plainText, String ncrK) {
     try {
-      final encrypted = _encrypter.encrypt(plainText, iv: _iv);
+      final key = Key.fromUtf8(ncrK);
+      final iv = IV.allZerosOfLength(16);
+      final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+      
+      final encrypted = encrypter.encrypt(plainText, iv: iv);
+      
       return encrypted.base64;
     } catch(e) {
       return plainText;
     }
   }
 
-  static String decrypt(String encryptedText) {
+  static String decrypt(String encryptedText, String ncrK) {
+    
+    final key = Key.fromUtf8(ncrK);
+    final iv = IV.allZerosOfLength(16);
+    final encrypter = Encrypter(AES(key, mode: AESMode.cbc));
+    
     try {
-      final decrypted = _encrypter.decrypt64(encryptedText, iv: _iv);
+      final decrypted = encrypter.decrypt64(encryptedText, iv: iv);
       return decrypted;
     } catch (e) {
       return encryptedText;

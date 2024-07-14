@@ -25,7 +25,6 @@ class MainApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    
     final appConfig = ref.watch(configParamsProvider).configData;
     
     FlutterNativeSplash.remove();

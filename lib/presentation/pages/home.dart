@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:keys_saver/config/constants/colors.dart';
 
 import 'package:keys_saver/config/extensions/bold_substring.dart';
+import 'package:keys_saver/config/extensions/color_from_hex.dart';
 import 'package:keys_saver/domain/models/app_config_collection.dart';
 import 'package:keys_saver/domain/models/keys_collection.dart';
 import 'package:keys_saver/presentation/providers/app_config_provider.dart';
@@ -137,12 +139,14 @@ class HomeState extends ConsumerState<Home> {
     }
 
     return Scaffold(
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () { 
           restartValues();
           context.push('/addKey');
         },
         shape: const CircleBorder(),
+        mini: true,
         child: Icon(Icons.add, color: Theme.of(context).secondaryHeaderColor),
       ),
       body: GestureDetector(
@@ -214,12 +218,21 @@ class HomeState extends ConsumerState<Home> {
                           ),
                         )
                       )
-                    : Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: KeyEntry(
-                        entryData: filteredKeys[index],
-                        onKeyRemove: showConfirmModal,
-                        onkeySelected: onKeySelected,
+                    : SizedBox(
+                      width: double.infinity,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            KeyEntry(
+                              entryData: filteredKeys[index],
+                              onKeyRemove: showConfirmModal,
+                              onkeySelected: onKeySelected,
+                            ),
+                            if (index == filteredKeys.length - 1) Container(height: 50.0)
+                          ],
+                        ),
                       )
                     );
                   }
@@ -229,6 +242,7 @@ class HomeState extends ConsumerState<Home> {
           ),
         ),
       ),
+      drawerEnableOpenDragGesture: true,
       drawer: Drawer(
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -259,18 +273,20 @@ class HomeState extends ConsumerState<Home> {
             const SizedBox(height: 30.0),
             Row(
               children: [
-                 const Text('Modo oscuro:'),
+                configParams.enableConfigTheme
+                 ? const Text('Modo oscuro:')
+                 : Text('Modo oscuro:', style: TextStyle(color: HexColor.fromHex(AppColors.primary100))),
                  const Spacer(),
                  Switch(
                   value: darkThemeMode,
                   activeColor: Theme.of(context).primaryColor, 
-                  onChanged: (bool value) {
+                  onChanged: configParams.enableConfigTheme ? (bool value) {
                     setState( () => darkThemeMode = !darkThemeMode );
                     final newConfig = configParams;
                     newConfig.enableConfigTheme = autoThemeSelection;
                     newConfig.darkModeEnabled = darkThemeMode;
                     ref.read(configParamsProvider.notifier).saveAppConfig(newConfig);
-                  }
+                  } : null
                 )
               ],
             )
