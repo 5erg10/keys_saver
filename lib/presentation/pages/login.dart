@@ -5,11 +5,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:keys_saver/config/extensions/bold_substring.dart';
+import 'package:keys_saver/domain/models/app_credentials.dart';
 import 'package:keys_saver/presentation/providers/app_config_provider.dart';
 import 'package:keys_saver/presentation/providers/app_credentials_provider.dart';
 import 'package:keys_saver/presentation/providers/local_auth_provider.dart';
+import 'package:keys_saver/presentation/providers/permissions_provider.dart';
 import 'package:keys_saver/presentation/providers/sec_storage_provider.dart';
 import 'package:keys_saver/presentation/widgets/private_key_form.dart';
+import 'package:keys_saver/presentation/widgets/request_storage_permissions.dart';
 import 'package:keys_saver/presentation/widgets/user_data_form.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 
@@ -37,6 +40,7 @@ class LoginState extends ConsumerState<Login> {
     super.initState();
     ref.read(configParamsProvider.notifier).recoverAppConfig();
     ref.read(secProvider.notifier).readSec();
+    ref.read(devicePermissionsProvider.notifier).checkStoragePermission();
     if (!credentialsPassed) {
       ref.read(authProvider.notifier).authenticate();
     }
@@ -44,10 +48,11 @@ class LoginState extends ConsumerState<Login> {
 
   @override
   Widget build(BuildContext context) {
-    final passKey = ref.watch(secProvider).key;
-    final userCredentials = ref.watch(credentialsProvider).credentials;
-    final haveBiometrics = ref.watch(authProvider).haveBiometrics;
-    final isAuthOk = ref.watch(authProvider).isAuth;
+    final String passKey = ref.watch(secProvider).key;
+    final AppCredentials? userCredentials = ref.watch(credentialsProvider).credentials;
+    final bool haveBiometrics = ref.watch(authProvider).haveBiometrics;
+    final AuthStatus isAuthOk = ref.watch(authProvider).isAuth;
+    final bool haveStoragePermissions = ref.watch(devicePermissionsProvider).storageGranted;
 
     // Comprueba las credenciales solo cuando arranca la app
     if (!credentialsPassed && passKey.isNotEmpty) {
@@ -67,6 +72,10 @@ class LoginState extends ConsumerState<Login> {
           exit(0);
         }
       }
+    }
+
+    void requestStoragePermissions() {
+      ref.read(devicePermissionsProvider.notifier).requestStoragePermissions();
     }
 
     void onFormSubmit(String user, String passW) {
@@ -94,38 +103,43 @@ class LoginState extends ConsumerState<Login> {
               child: Divider(color: Theme.of(context).primaryColor))),
       body: GestureDetector(
         onTap: removeFocus,
-        child: ListView(children: [
-          Center(
-              child: SizedBox(
-            height: MediaQuery.of(context).size.height - 200,
-            width: 300.0,
-            child: passKey.isEmpty
-                ? PrivateKeyForm(onSubmit: onPrivKeySubmit)
-                : userCredentials == null
-                    ? Center(
-                        child: SizedBox(
-                            height: 200.0,
-                            child: Column(
-                              children: [
-                                const Text('Comprobando credenciales'),
-                                const SizedBox(height: 40.0),
-                                LoadingAnimationWidget.discreteCircle(
-                                  color: Theme.of(context).primaryColor,
-                                  secondRingColor:
-                                      Theme.of(context).secondaryHeaderColor,
-                                  thirdRingColor:
-                                      Theme.of(context).primaryColor,
-                                  size: 30.0,
-                                ),
-                              ],
-                            )),
-                      )
-                    : UserDataForm(
-                        userCredentials: userCredentials,
-                        onSubmit: onFormSubmit
-                      ),
-          )),
-        ]),
+        child: haveStoragePermissions
+        ? RequestStoragePermissionsModal(onClick: requestStoragePermissions)
+        : ListView(
+            children: [
+              Center(
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height - 200,
+                  width: 300.0,
+                  child: passKey.isEmpty
+                      ? PrivateKeyForm(onSubmit: onPrivKeySubmit)
+                      : userCredentials == null
+                          ? Center(
+                              child: SizedBox(
+                                  height: 200.0,
+                                  child: Column(
+                                    children: [
+                                      const Text('Comprobando credenciales'),
+                                      const SizedBox(height: 40.0),
+                                      LoadingAnimationWidget.discreteCircle(
+                                        color: Theme.of(context).primaryColor,
+                                        secondRingColor:
+                                            Theme.of(context).secondaryHeaderColor,
+                                        thirdRingColor:
+                                            Theme.of(context).primaryColor,
+                                        size: 30.0,
+                                      ),
+                                    ],
+                                  )),
+                            )
+                          : UserDataForm(
+                              userCredentials: userCredentials,
+                              onSubmit: onFormSubmit
+                            ),
+                )
+              ),
+            ]
+          ),
       ),
     );
   }

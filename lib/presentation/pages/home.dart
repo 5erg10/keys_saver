@@ -1,3 +1,10 @@
+// ignore_for_file: avoid_print
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:csv/csv.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +18,8 @@ import 'package:keys_saver/domain/models/keys_collection.dart';
 import 'package:keys_saver/presentation/providers/app_config_provider.dart';
 import 'package:keys_saver/presentation/providers/keys_provider.dart';
 import 'package:keys_saver/presentation/widgets/key_entry.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 // import 'package:keys_saver/presentation/widgets/searchbar.dart';
 
 class Home extends ConsumerStatefulWidget {
@@ -22,7 +31,7 @@ class Home extends ConsumerStatefulWidget {
 }
 
 class HomeState extends ConsumerState<Home> {
-    
+
   bool darkThemeMode = false;
   bool autoThemeSelection = false;
   bool openedSearchbar = false;
@@ -48,7 +57,7 @@ class HomeState extends ConsumerState<Home> {
 
     void filterKeys(String value) {
       setState(() {
-        filteredKeys = keysProvider.keysList!.where((key) { 
+        filteredKeys = keysProvider.keysList!.where((key) {
             return key.titulo.toLowerCase().contains(value.toLowerCase());
           }).toList();
       });
@@ -83,6 +92,63 @@ class HomeState extends ConsumerState<Home> {
     void onKeySelected(int keyId) {
       restartValues();
       context.push('/keyDetails/$keyId');
+    }
+
+    Future createDataFile(File dataFile, String dirPath) async {
+
+      List<List<String>> dataToSave = [];
+
+      await dataFile.create(recursive: true);
+
+      keysProvider.keysList?.forEach( (KeyValues element) async {
+        dataToSave.add([element.titulo, element.user, element.passW]);
+      });
+
+      final csvData = const ListToCsvConverter().convert(dataToSave);
+
+      await dataFile.writeAsString(csvData);
+
+      await OpenFile.open('$dirPath/data.csv', type: "application/vnd.ms-excel");
+      
+    }
+
+    void importCsv() async {
+
+      List<KeyValues> keysData = [];
+
+      Directory appDocDir = await getApplicationDocumentsDirectory();
+
+      print('directory: ${appDocDir.path}');
+
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+        initialDirectory: appDocDir.path
+      );
+
+      if (result != null) {
+        File dataFile = File('${result.files.first.path}');
+        final input = dataFile.openRead();
+        final fields = await input.transform(utf8.decoder).transform(const CsvToListConverter()).toList();
+        for (var field in fields) {
+          ref.read(keysDataProvider.notifier).addKeyList(KeyValues(titulo: field[0], user: field[1], passW: field[2]));
+        }
+        print('keys data: $keysData');
+      }
+    }
+
+    void exportCsv() async {
+
+      Directory appDocDir = await getApplicationDocumentsDirectory();
+      
+      File dataFile = File('${appDocDir.path}/data.csv');
+      
+      try {
+        await dataFile.readAsString();
+        await dataFile.delete();
+        createDataFile(dataFile, appDocDir.path);
+      } catch(e) {
+        createDataFile(dataFile, appDocDir.path);
+      }
     }
 
     void showConfirmModal(int id) {
@@ -141,7 +207,7 @@ class HomeState extends ConsumerState<Home> {
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: FloatingActionButton(
-        onPressed: () { 
+        onPressed: () {
           restartValues();
           context.push('/addKey');
         },
@@ -200,7 +266,7 @@ class HomeState extends ConsumerState<Home> {
                 SliverList.builder(
                   itemCount: filteredKeys.isEmpty ? 1 : filteredKeys.length,
                   itemBuilder: (BuildContext context, int index) {
-                    return filteredKeys.isEmpty 
+                    return filteredKeys.isEmpty
                     ? SizedBox(
                         height: 200.0,
                         child: Padding(
@@ -249,7 +315,30 @@ class HomeState extends ConsumerState<Home> {
           children: [
             const SizedBox(height: 100.0),
             const Text('Keys Saver').boldSubString('Keys', Theme.of(context).textTheme.bodyMedium!),
-            SizedBox(height: MediaQuery.sizeOf(context).height - 350),
+            SizedBox(height: MediaQuery.sizeOf(context).height - 430),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: exportCsv,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 0.0)
+                  ),
+                  child: Text('Crear copia de seguridad', style: TextStyle( color: HexColor.fromHex(AppColors.secondary700) ))
+                )
+              ]
+            ),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: importCsv,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 0.0)
+                  ),
+                  child: Text('Importar datos copia de seguridad', style: TextStyle( color: HexColor.fromHex(AppColors.secondary700) ))
+                )
+              ]
+            ),
+            const SizedBox(height: 30.0),
             Row(
               children: [
                  const SizedBox(
@@ -279,7 +368,7 @@ class HomeState extends ConsumerState<Home> {
                  const Spacer(),
                  Switch(
                   value: darkThemeMode,
-                  activeColor: Theme.of(context).primaryColor, 
+                  activeColor: Theme.of(context).primaryColor,
                   onChanged: configParams.enableConfigTheme ? (bool value) {
                     setState( () => darkThemeMode = !darkThemeMode );
                     final newConfig = configParams;
