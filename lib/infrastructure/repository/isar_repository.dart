@@ -46,7 +46,7 @@ class IsarRepository extends LocalRepository {
   }
 
   @override
-  Future<void> saveCredentials(AppCredentials creds, String ncrK) {
+  Future<bool> saveCredentials(AppCredentials creds, String ncrK) {
     return dataSource.saveCredentials(creds, ncrK);
   }
 

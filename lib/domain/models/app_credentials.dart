@@ -7,11 +7,9 @@ class AppCredentials {
   Id id = Isar.autoIncrement;
   String? user;
   String? passW;
-  String? passKey;
 
   AppCredentials({
     this.user,
     this.passW,
-    this.passKey
   });
 }

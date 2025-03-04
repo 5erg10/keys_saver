@@ -1,31 +1,34 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:keys_saver/config/extensions/bold_substring.dart';
-import 'package:keys_saver/domain/models/app_credentials.dart';
-import 'package:keys_saver/presentation/providers/app_config_provider.dart';
-import 'package:keys_saver/presentation/providers/app_credentials_provider.dart';
-import 'package:keys_saver/presentation/providers/local_auth_provider.dart';
-import 'package:keys_saver/presentation/providers/permissions_provider.dart';
-import 'package:keys_saver/presentation/providers/sec_storage_provider.dart';
-import 'package:keys_saver/presentation/widgets/private_key_form.dart';
-import 'package:keys_saver/presentation/widgets/request_storage_permissions.dart';
-import 'package:keys_saver/presentation/widgets/user_data_form.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 
-class Login extends ConsumerStatefulWidget {
+import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:keys_saver/domain/entities/entities.dart';
+import 'package:keys_saver/domain/models/app_credentials.dart';
+import 'package:keys_saver/presentation/widgets/widgets.dart';
+import '../providers/providers.dart';
+
+enum OnBoardSteps { noAuth, needPasskey, loading, needStoragePermmisions, noBiometrics }
+class Login extends StatefulWidget {
   const Login({super.key});
 
   @override
   LoginState createState() => LoginState();
 }
 
-class LoginState extends ConsumerState<Login> {
-  bool credentialsPassed = false;
+class LoginState extends State<Login> {
+
+  bool completeLoginAndConfig = false;
+  bool authChecked = false;
   bool showCreatePrivateKey = false;
+  bool haveBiometrics = false;
+
+  AppCredentials? userManualCredentials;
+
+  OnBoardSteps step = OnBoardSteps.loading;
+
+  DevicePermissionsController permissionsController = Get.find();
 
   void removeFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -35,111 +38,119 @@ class LoginState extends ConsumerState<Login> {
     });
   }
 
+  void navigateToHome() {
+    if (mounted) context.push('/');
+  }
+
+  void saveUserCredentials(String privKey) async {
+    final bool userSaved = haveBiometrics ? true : await Get.put(ManualCredentialsController()).saveUserCredentials(userManualCredentials!, privKey);
+    if (mounted) {
+      userSaved ? navigateToHome() : CustomSnackbar(context: context, text: 'Error al guardar datos de usuario', backGroundColor: Colors.red);
+    }
+  }
+
+  void onPrivKeySubmit(String privKey) async  {
+    removeFocus();
+    final bool passkeySuccess = await Get.put(PassKeyController()).writeSec(privKey);
+    if (mounted) {
+      passkeySuccess ? saveUserCredentials(privKey) : CustomSnackbar(context: context, text: 'Error al guardar la key', backGroundColor: Colors.red);
+    }
+  }
+
+  void requestStoragePermissions() {
+    Get.put(DevicePermissionsController()).checkStoragePermission();
+  }
+
+  void checkPassKeyCreated() async {
+    final recoverPassKey = await Get.put(PassKeyController()).readSec();
+    if (recoverPassKey == null) {
+      setState(() {
+        step = OnBoardSteps.needPasskey;
+      });
+    } else {
+      navigateToHome();
+    }
+  }
+
+  void createManualCredentials(String user, String password) async {
+
+    AppCredentials newUserCrendetials = AppCredentials(user: user, passW: password);
+
+    final String? currentPassKey = await Get.put(PassKeyController()).readSec();
+    
+    setState(() {
+      userManualCredentials = newUserCrendetials;
+      if (currentPassKey != null) {
+        navigateToHome();
+      } else {
+        step = OnBoardSteps.needPasskey;
+      }
+    });
+  }
+
+  void checkAuthStatus() async {
+
+    final AuthState authStatus = await Get.put(BiometricAuth()).authenticate();
+    final String? currentPassKey = await Get.put(PassKeyController()).readSec();
+    final AppCredentials? currentCredentials = currentPassKey != null ? await Get.put(ManualCredentialsController()).recoverCredentials(currentPassKey) : null;
+
+    haveBiometrics = authStatus.haveBiometrics;
+
+    if (!haveBiometrics) {
+      setState(() {
+        userManualCredentials = currentCredentials;
+        step = OnBoardSteps.noBiometrics;
+      });
+    } else {
+      authChecked = authStatus.isAuth == AuthStatus.authenticated;
+      currentPassKey == null ? checkPassKeyCreated() : navigateToHome();
+    }
+  }
+
+  void checkStoragePermissions() async {
+    bool permissionsGranted = await Get.put( DevicePermissionsController()).checkStoragePermission();
+    permissionsGranted ? checkAuthStatus() : setState(() => step = OnBoardSteps.needStoragePermmisions);
+  }
+
   @override
   void initState() {
     super.initState();
-    ref.read(configParamsProvider.notifier).recoverAppConfig();
-    ref.read(secProvider.notifier).readSec();
-    ref.read(devicePermissionsProvider.notifier).checkStoragePermission();
-    if (!credentialsPassed) {
-      ref.read(authProvider.notifier).authenticate();
+    if (!authChecked) {
+      checkStoragePermissions();
+    }
+  }
+
+  Widget bodyContent() {
+    switch (step) {
+      case OnBoardSteps.loading:
+        return SizedBox(
+          height: double.infinity,
+          width: double.infinity,
+          child: Center(
+            child: CustomLoading(label: 'cargando configuracion ...', textColor: Theme.of(context).primaryColor),
+          ),
+        );
+
+      case OnBoardSteps.noBiometrics:
+        return ManualCredentialsForm(userCredentials: userManualCredentials, onSubmit: createManualCredentials);
+
+      case OnBoardSteps.noAuth:
+        return Container();
+
+      case OnBoardSteps.needPasskey:
+        return PrivateKeyForm(onSubmit: onPrivKeySubmit);
+
+      case OnBoardSteps.needStoragePermmisions:
+        return RequestStoragePermissionsModal(onClick: requestStoragePermissions);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final String passKey = ref.watch(secProvider).key;
-    final AppCredentials? userCredentials = ref.watch(credentialsProvider).credentials;
-    final bool haveBiometrics = ref.watch(authProvider).haveBiometrics;
-    final AuthStatus isAuthOk = ref.watch(authProvider).isAuth;
-    final bool haveStoragePermissions = ref.watch(devicePermissionsProvider).storageGranted;
-
-    // Comprueba las credenciales solo cuando arranca la app
-    if (!credentialsPassed && passKey.isNotEmpty) {
-      // comprueba si el usuario ha definido ya una provate key para la encriptacion
-      if (!haveBiometrics) {
-        ref.read(credentialsProvider.notifier).recoverCredentials(passKey);
-      } else {
-        if (isAuthOk == AuthStatus.authenticated) {
-          setState(() {
-            credentialsPassed = true;
-          });
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.push('/');
-          });
-        }
-        if (isAuthOk == AuthStatus.cancelAuth) {
-          exit(0);
-        }
-      }
-    }
-
-    void requestStoragePermissions() {
-      ref.read(devicePermissionsProvider.notifier).requestStoragePermissions();
-    }
-
-    void onFormSubmit(String user, String passW) {
-      setState(() {
-        credentialsPassed = true;
-      });
-      if (userCredentials!.user!.isEmpty) {
-        ref.read(credentialsProvider.notifier)
-        .saveUserCredentials(userCredentials ..user = user ..passW = passW, passKey);
-      }
-      context.push('/');
-    }
-
-    void onPrivKeySubmit(String privKey) {
-      ref.read(secProvider.notifier).writeSec(privKey);
-    }
-
     return Scaffold(
-      appBar: AppBar(
-          centerTitle: true,
-          title: const Text('Keys Saver')
-              .boldSubString('Keys', Theme.of(context).textTheme.bodyMedium!),
-          bottom: PreferredSize(
-              preferredSize: const Size(double.infinity, 5.0),
-              child: Divider(color: Theme.of(context).primaryColor))),
       body: GestureDetector(
         onTap: removeFocus,
-        child: haveStoragePermissions
-        ? RequestStoragePermissionsModal(onClick: requestStoragePermissions)
-        : ListView(
-            children: [
-              Center(
-                child: SizedBox(
-                  height: MediaQuery.of(context).size.height - 200,
-                  width: 300.0,
-                  child: passKey.isEmpty
-                      ? PrivateKeyForm(onSubmit: onPrivKeySubmit)
-                      : userCredentials == null
-                          ? Center(
-                              child: SizedBox(
-                                  height: 200.0,
-                                  child: Column(
-                                    children: [
-                                      const Text('Comprobando credenciales'),
-                                      const SizedBox(height: 40.0),
-                                      LoadingAnimationWidget.discreteCircle(
-                                        color: Theme.of(context).primaryColor,
-                                        secondRingColor:
-                                            Theme.of(context).secondaryHeaderColor,
-                                        thirdRingColor:
-                                            Theme.of(context).primaryColor,
-                                        size: 30.0,
-                                      ),
-                                    ],
-                                  )),
-                            )
-                          : UserDataForm(
-                              userCredentials: userCredentials,
-                              onSubmit: onFormSubmit
-                            ),
-                )
-              ),
-            ]
-          ),
+        child: bodyContent(),
       ),
     );
   }

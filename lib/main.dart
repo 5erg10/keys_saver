@@ -1,38 +1,53 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:keys_saver/config/routers/main_router.dart';
 import 'package:keys_saver/config/theme/theme.dart';
-import 'package:keys_saver/presentation/providers/app_config_provider.dart';
+import 'package:keys_saver/domain/models/app_config_collection.dart';
+import 'package:keys_saver/presentation/providers/providers.dart';
 
 void main() async {
 
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  runApp(const ProviderScope(
-    child: MainApp(),
+  Get.put(DevicePermissionsController());
+
+  Get.put(PassKeyController());
+    
+  FlutterNativeSplash.remove();
+
+  final container = ProviderContainer();
+  await container.read(configParamsProvider.notifier).recoverAppConfig();
+
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const MainApp(),
   ));
 }
-
 class MainApp extends ConsumerWidget {
 
   const MainApp({super.key});
 
   @override
-  Widget build(BuildContext context, ref) {
-    final appConfig = ref.watch(configParamsProvider).configData;
-    
-    FlutterNativeSplash.remove();
+  Widget build(BuildContext context, WidgetRef ref) {
+
+    final AppConfig appConfig = ref.watch(configParamsProvider).configData;
+
+    bool isDarkMode = PlatformDispatcher.instance.platformBrightness == Brightness.dark;
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      theme: appConfig.enableConfigTheme && appConfig.darkModeEnabled ? darkTheme : lightTheme,
-      darkTheme: appConfig.enableConfigTheme && !appConfig.darkModeEnabled ? lightTheme : darkTheme,
+      theme: appConfig.enableConfigTheme ? appConfig.darkModeEnabled ? darkTheme : lightTheme : isDarkMode ? darkTheme : lightTheme,
+      // darkTheme: appConfig.enableConfigTheme && appConfig.darkModeEnabled ? darkTheme : lightTheme,
       routerConfig: statelessRouter
     );
   }

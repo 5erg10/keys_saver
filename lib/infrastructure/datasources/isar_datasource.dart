@@ -89,8 +89,15 @@ class IsarDatasource extends LocalDatasource {
   @override
   Future<void> saveAppConfig(AppConfig config) async {
     final isar = await db;
+    final recoverConfig = await isar.appConfigs.where().findAll();
     isar.writeTxnSync(() {
-      isar.appConfigs.putSync(config);
+      isar.appConfigs.putSync(
+        recoverConfig.isEmpty 
+        ? config 
+        : recoverConfig[0]
+          ..darkModeEnabled = config.darkModeEnabled
+          ..enableConfigTheme = config.enableConfigTheme
+      );
     });
   }
   
@@ -102,7 +109,7 @@ class IsarDatasource extends LocalDatasource {
     final List<AppCredentials> data = await isar.appCredentials.where().findAll();
 
     if (data.isEmpty) {
-      return AppCredentials(user: '', passW: '', passKey: '');
+      return null;
     } else {
       return data[0]
         ..passW = EncrypterService.decrypt(data[0].passW!, ncrK)
@@ -111,15 +118,20 @@ class IsarDatasource extends LocalDatasource {
   }
   
   @override
-  Future<void> saveCredentials(AppCredentials creds, String ncrK) async {
-    final isar = await db;
-    final encryptedCreds =  creds
-        ..passW = EncrypterService.encrypt(creds.passW!, ncrK)
-        ..user = EncrypterService.encrypt(creds.user!, ncrK);
-      
-    isar.writeTxnSync(() {
-      isar.appCredentials.putSync(encryptedCreds);
-    });
+  Future<bool> saveCredentials(AppCredentials creds, String ncrK) async {
+    try {
+      final isar = await db;
+      final encryptedCreds =  creds
+          ..passW = EncrypterService.encrypt(creds.passW!, ncrK)
+          ..user = EncrypterService.encrypt(creds.user!, ncrK);
+        
+      isar.writeTxnSync(() {
+        isar.appCredentials.putSync(encryptedCreds);
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   

@@ -29,10 +29,17 @@ class KeyDetailsState extends ConsumerState<KeyDetails> {
 
   late KeyValues? keyData;
 
+  void getKeyDetails() async {
+
+    final List<KeyValues>? keysList = ref.read(keysDataProvider).keysList;
+
+    keyData = keysList?.firstWhere((element) => element.id == widget.entryId);
+  }
+
   @override
   void initState() {
     super.initState();
-    keyData = ref.read(keysDataProvider).keysList?.firstWhere((element) => element.id == widget.entryId);
+    getKeyDetails();
   }
 
   @override

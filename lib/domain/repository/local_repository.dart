@@ -16,7 +16,7 @@ abstract class LocalRepository {
 
   Future<AppConfig?> recoverAppConfig();
 
-  Future<void> saveCredentials(AppCredentials creds, String ncrK);
+  Future<bool> saveCredentials(AppCredentials creds, String ncrK);
 
   Future<AppCredentials?> recoverCredentias(String ncrK);
 }

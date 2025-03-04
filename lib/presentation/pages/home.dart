@@ -1,25 +1,13 @@
 // ignore_for_file: avoid_print
-
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:csv/csv.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:keys_saver/config/constants/colors.dart';
 
 import 'package:keys_saver/config/extensions/bold_substring.dart';
-import 'package:keys_saver/config/extensions/color_from_hex.dart';
-import 'package:keys_saver/domain/models/app_config_collection.dart';
 import 'package:keys_saver/domain/models/keys_collection.dart';
-import 'package:keys_saver/presentation/providers/app_config_provider.dart';
 import 'package:keys_saver/presentation/providers/keys_provider.dart';
-import 'package:keys_saver/presentation/widgets/key_entry.dart';
-import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:keys_saver/presentation/widgets/widgets.dart';
 // import 'package:keys_saver/presentation/widgets/searchbar.dart';
 
 class Home extends ConsumerStatefulWidget {
@@ -32,40 +20,45 @@ class Home extends ConsumerStatefulWidget {
 
 class HomeState extends ConsumerState<Home> {
 
-  bool darkThemeMode = false;
-  bool autoThemeSelection = false;
-  bool openedSearchbar = false;
-  List<KeyValues> filteredKeys = [];
   final TextEditingController searchInputCtrl = TextEditingController();
+
+  bool openedSearchbar = false;
+
+  bool loadingKeys = true;
+
+  List<KeyValues> filteredKeys = [];
+
+  List<KeyValues>? keysList;
+
   FocusNode inputFocus = FocusNode();
+
+  void getKeys() async {
+    ref.read(keysDataProvider.notifier).getKeysList();
+  }
 
   @override
   void initState() {
     super.initState();
-    ref.read(keysDataProvider.notifier).getKeysList();
+    getKeys();
   }
 
   @override
   Widget build(BuildContext context) {
 
-    final keysProvider = ref.watch(keysDataProvider);
-
-    final AppConfig configParams = ref.read(configParamsProvider).configData;
-
-    darkThemeMode = configParams.darkModeEnabled;
-    autoThemeSelection = configParams.enableConfigTheme;
+    ref.listen(keysDataProvider, (previous, next) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          keysList = next.keysList;
+          filteredKeys = next.keysList ?? [];
+        });
+      });
+    });
 
     void filterKeys(String value) {
       setState(() {
-        filteredKeys = keysProvider.keysList!.where((key) {
+        filteredKeys = keysList!.where((key) {
             return key.titulo.toLowerCase().contains(value.toLowerCase());
           }).toList();
-      });
-    }
-
-    if(keysProvider.updated) {
-      setState(() {
-        searchInputCtrl.text.isEmpty ? filteredKeys = keysProvider.keysList! : filterKeys(searchInputCtrl.text);
       });
     }
 
@@ -85,70 +78,13 @@ class HomeState extends ConsumerState<Home> {
       setState(() {
         searchInputCtrl.text = '';
         openedSearchbar = false;
-        filteredKeys = keysProvider.keysList!;
+        filteredKeys = keysList!;
       });
     }
 
     void onKeySelected(int keyId) {
       restartValues();
       context.push('/keyDetails/$keyId');
-    }
-
-    Future createDataFile(File dataFile, String dirPath) async {
-
-      List<List<String>> dataToSave = [];
-
-      await dataFile.create(recursive: true);
-
-      keysProvider.keysList?.forEach( (KeyValues element) async {
-        dataToSave.add([element.titulo, element.user, element.passW]);
-      });
-
-      final csvData = const ListToCsvConverter().convert(dataToSave);
-
-      await dataFile.writeAsString(csvData);
-
-      await OpenFile.open('$dirPath/data.csv', type: "application/vnd.ms-excel");
-      
-    }
-
-    void importCsv() async {
-
-      List<KeyValues> keysData = [];
-
-      Directory appDocDir = await getApplicationDocumentsDirectory();
-
-      print('directory: ${appDocDir.path}');
-
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: false,
-        initialDirectory: appDocDir.path
-      );
-
-      if (result != null) {
-        File dataFile = File('${result.files.first.path}');
-        final input = dataFile.openRead();
-        final fields = await input.transform(utf8.decoder).transform(const CsvToListConverter()).toList();
-        for (var field in fields) {
-          ref.read(keysDataProvider.notifier).addKeyList(KeyValues(titulo: field[0], user: field[1], passW: field[2]));
-        }
-        print('keys data: $keysData');
-      }
-    }
-
-    void exportCsv() async {
-
-      Directory appDocDir = await getApplicationDocumentsDirectory();
-      
-      File dataFile = File('${appDocDir.path}/data.csv');
-      
-      try {
-        await dataFile.readAsString();
-        await dataFile.delete();
-        createDataFile(dataFile, appDocDir.path);
-      } catch(e) {
-        createDataFile(dataFile, appDocDir.path);
-      }
     }
 
     void showConfirmModal(int id) {
@@ -275,7 +211,7 @@ class HomeState extends ConsumerState<Home> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              if (keysProvider.keysList != null && keysProvider.keysList!.isNotEmpty)
+                              if (keysList != null && keysList!.isNotEmpty)
                               ... [
                                 const Text('No se han encontrado resultados para'),
                                 Text('"${searchInputCtrl.text}".')
@@ -309,78 +245,8 @@ class HomeState extends ConsumerState<Home> {
         ),
       ),
       drawerEnableOpenDragGesture: true,
-      drawer: Drawer(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          children: [
-            const SizedBox(height: 100.0),
-            const Text('Keys Saver').boldSubString('Keys', Theme.of(context).textTheme.bodyMedium!),
-            SizedBox(height: MediaQuery.sizeOf(context).height - 430),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: exportCsv,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 0.0)
-                  ),
-                  child: Text('Crear copia de seguridad', style: TextStyle( color: HexColor.fromHex(AppColors.secondary700) ))
-                )
-              ]
-            ),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: importCsv,
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 0.0)
-                  ),
-                  child: Text('Importar datos copia de seguridad', style: TextStyle( color: HexColor.fromHex(AppColors.secondary700) ))
-                )
-              ]
-            ),
-            const SizedBox(height: 30.0),
-            Row(
-              children: [
-                 const SizedBox(
-                  width: 200.0,
-                  child: Text('Configurar tema desde la aplicación:')
-                 ),
-                 const Spacer(),
-                 Checkbox(
-                  value: autoThemeSelection,
-                  activeColor: Theme.of(context).primaryColor,
-                  onChanged: (bool? value) {
-                    setState( () => autoThemeSelection = !autoThemeSelection );
-                    final newConfig = configParams;
-                    newConfig.enableConfigTheme = autoThemeSelection;
-                    newConfig.darkModeEnabled = darkThemeMode;
-                    ref.read(configParamsProvider.notifier).saveAppConfig(newConfig);
-                  }
-                )
-              ],
-            ),
-            const SizedBox(height: 30.0),
-            Row(
-              children: [
-                configParams.enableConfigTheme
-                 ? const Text('Modo oscuro:')
-                 : Text('Modo oscuro:', style: TextStyle(color: HexColor.fromHex(AppColors.primary100))),
-                 const Spacer(),
-                 Switch(
-                  value: darkThemeMode,
-                  activeColor: Theme.of(context).primaryColor,
-                  onChanged: configParams.enableConfigTheme ? (bool value) {
-                    setState( () => darkThemeMode = !darkThemeMode );
-                    final newConfig = configParams;
-                    newConfig.enableConfigTheme = autoThemeSelection;
-                    newConfig.darkModeEnabled = darkThemeMode;
-                    ref.read(configParamsProvider.notifier).saveAppConfig(newConfig);
-                  } : null
-                )
-              ],
-            )
-          ],
-        ),
+      drawer: const Drawer(
+        child: DrawerContent(),
       ),
     );
   }

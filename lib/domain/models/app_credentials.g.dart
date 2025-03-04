@@ -17,18 +17,13 @@ const AppCredentialsSchema = CollectionSchema(
   name: r'AppCredentials',
   id: 3317010268606225875,
   properties: {
-    r'passKey': PropertySchema(
-      id: 0,
-      name: r'passKey',
-      type: IsarType.string,
-    ),
     r'passW': PropertySchema(
-      id: 1,
+      id: 0,
       name: r'passW',
       type: IsarType.string,
     ),
     r'user': PropertySchema(
-      id: 2,
+      id: 1,
       name: r'user',
       type: IsarType.string,
     )
@@ -54,12 +49,6 @@ int _appCredentialsEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
-    final value = object.passKey;
-    if (value != null) {
-      bytesCount += 3 + value.length * 3;
-    }
-  }
-  {
     final value = object.passW;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -80,9 +69,8 @@ void _appCredentialsSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.passKey);
-  writer.writeString(offsets[1], object.passW);
-  writer.writeString(offsets[2], object.user);
+  writer.writeString(offsets[0], object.passW);
+  writer.writeString(offsets[1], object.user);
 }
 
 AppCredentials _appCredentialsDeserialize(
@@ -92,9 +80,8 @@ AppCredentials _appCredentialsDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = AppCredentials(
-    passKey: reader.readStringOrNull(offsets[0]),
-    passW: reader.readStringOrNull(offsets[1]),
-    user: reader.readStringOrNull(offsets[2]),
+    passW: reader.readStringOrNull(offsets[0]),
+    user: reader.readStringOrNull(offsets[1]),
   );
   object.id = id;
   return object;
@@ -110,8 +97,6 @@ P _appCredentialsDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
-    case 2:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -265,160 +250,6 @@ extension AppCredentialsQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'passKey',
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'passKey',
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyEqualTo(
-    String? value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'passKey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyGreaterThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'passKey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyLessThan(
-    String? value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'passKey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyBetween(
-    String? lower,
-    String? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'passKey',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'passKey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'passKey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'passKey',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'passKey',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'passKey',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterFilterCondition>
-      passKeyIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'passKey',
-        value: '',
       ));
     });
   }
@@ -740,19 +571,6 @@ extension AppCredentialsQueryLinks
 
 extension AppCredentialsQuerySortBy
     on QueryBuilder<AppCredentials, AppCredentials, QSortBy> {
-  QueryBuilder<AppCredentials, AppCredentials, QAfterSortBy> sortByPassKey() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'passKey', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterSortBy>
-      sortByPassKeyDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'passKey', Sort.desc);
-    });
-  }
-
   QueryBuilder<AppCredentials, AppCredentials, QAfterSortBy> sortByPassW() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'passW', Sort.asc);
@@ -792,19 +610,6 @@ extension AppCredentialsQuerySortThenBy
     });
   }
 
-  QueryBuilder<AppCredentials, AppCredentials, QAfterSortBy> thenByPassKey() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'passKey', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AppCredentials, AppCredentials, QAfterSortBy>
-      thenByPassKeyDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'passKey', Sort.desc);
-    });
-  }
-
   QueryBuilder<AppCredentials, AppCredentials, QAfterSortBy> thenByPassW() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'passW', Sort.asc);
@@ -832,13 +637,6 @@ extension AppCredentialsQuerySortThenBy
 
 extension AppCredentialsQueryWhereDistinct
     on QueryBuilder<AppCredentials, AppCredentials, QDistinct> {
-  QueryBuilder<AppCredentials, AppCredentials, QDistinct> distinctByPassKey(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'passKey', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<AppCredentials, AppCredentials, QDistinct> distinctByPassW(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -859,12 +657,6 @@ extension AppCredentialsQueryProperty
   QueryBuilder<AppCredentials, int, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
-    });
-  }
-
-  QueryBuilder<AppCredentials, String?, QQueryOperations> passKeyProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'passKey');
     });
   }
 

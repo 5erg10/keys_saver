@@ -5,7 +5,7 @@ import 'package:keys_saver/config/constants/colors.dart';
 import 'package:keys_saver/config/extensions/bold_substring.dart';
 import 'package:keys_saver/config/extensions/color_from_hex.dart';
 import 'package:keys_saver/domain/models/keys_collection.dart';
-import 'package:keys_saver/presentation/providers/keys_provider.dart';
+import 'package:keys_saver/presentation/providers/providers.dart';
 
 class AddKey extends ConsumerStatefulWidget {
 
