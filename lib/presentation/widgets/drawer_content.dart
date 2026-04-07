@@ -71,24 +71,22 @@ class DrawerContentState extends ConsumerState<DrawerContent> {
   }
 
   void exportCsv() async {
-    
-    Directory appDocDir = await getApplicationDocumentsDirectory();
+
+    String? selectedDirectory = await FilePicker.platform.getDirectoryPath(
+      dialogTitle: 'Selecciona dónde guardar la copia de seguridad',
+    );
+
+    if (selectedDirectory == null) return;
 
     String csvFileName = 'key${DateTime.now().millisecondsSinceEpoch ~/ 1000}';
 
-    if (!await appDocDir.exists()) {
-      await appDocDir.create(recursive: true);
-    }
-    
-    File dataFile = File('${appDocDir.path}/$csvFileName.csv');
-    
-    try {
-      await dataFile.readAsString();
+    File dataFile = File('$selectedDirectory/$csvFileName.csv');
+
+    if (await dataFile.exists()) {
       await dataFile.delete();
-      createDataFile(dataFile, appDocDir.path, csvFileName);
-    } catch(e) {
-      createDataFile(dataFile, appDocDir.path, csvFileName);
     }
+
+    createDataFile(dataFile, selectedDirectory, csvFileName);
   }
 
   void getAppConfig() async {
