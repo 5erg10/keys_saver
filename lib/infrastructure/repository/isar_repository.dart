@@ -1,4 +1,4 @@
-import 'package:keys_saver/domain/datasorces/local_datasource.dart';
+import 'package:keys_saver/domain/datasources/local_datasource.dart';
 import 'package:keys_saver/domain/models/app_config_collection.dart';
 import 'package:keys_saver/domain/models/app_credentials.dart';
 import 'package:keys_saver/domain/models/keys_collection.dart';

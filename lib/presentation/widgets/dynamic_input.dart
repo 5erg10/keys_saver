@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:keys_saver/presentation/widgets/custom_snackbar.dart';
 
-class DinamycInput extends StatefulWidget {
+class DynamicInput extends StatefulWidget {
 
 final String textValue;
 final bool isPasswordType;
@@ -12,7 +12,7 @@ final String? title;
 final String? placeholder;
 final TextInputType? keyboardType;
 
-const DinamycInput({ 
+const DynamicInput({ 
   super.key,
   required this.textValue,
   this.isPasswordType = false,
@@ -23,10 +23,10 @@ const DinamycInput({
 });
 
   @override
-  State<DinamycInput> createState() => _DinamycInputState();
+  State<DynamicInput> createState() => _DynamicInputState();
 }
 
-class _DinamycInputState extends State<DinamycInput> {
+class _DynamicInputState extends State<DynamicInput> {
 
   late bool textObscured = false;
 

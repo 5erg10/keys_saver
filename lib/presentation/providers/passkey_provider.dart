@@ -1,15 +1,18 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:get/get.dart';
 
-class PassKeyController extends GetxController {
+class PassKeyState {
+  final String? key;
+  const PassKeyState({this.key});
+}
+
+class PassKeyNotifier extends StateNotifier<PassKeyState> {
+  PassKeyNotifier() : super(const PassKeyState());
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  String? key;
-
   IOSOptions _getIOSOptions() =>
       const IOSOptions(accessibility: KeychainAccessibility.first_unlock);
-
   AndroidOptions _getAndroidOptions() =>
       const AndroidOptions(encryptedSharedPreferences: true);
 
@@ -19,8 +22,7 @@ class PassKeyController extends GetxController {
       iOptions: _getIOSOptions(),
       aOptions: _getAndroidOptions(),
     );
-    key = data;
-    update();
+    state = PassKeyState(key: data);
     return data;
   }
 
@@ -32,6 +34,7 @@ class PassKeyController extends GetxController {
         iOptions: _getIOSOptions(),
         aOptions: _getAndroidOptions(),
       );
+      state = PassKeyState(key: value);
       return true;
     } catch (e) {
       return false;
@@ -42,7 +45,12 @@ class PassKeyController extends GetxController {
     await _storage.delete(
       key: 'passKey',
       iOptions: _getIOSOptions(),
-      aOptions: _getAndroidOptions()
+      aOptions: _getAndroidOptions(),
     );
+    state = const PassKeyState();
   }
 }
+
+final passKeyProvider = StateNotifierProvider<PassKeyNotifier, PassKeyState>(
+  (ref) => PassKeyNotifier(),
+);

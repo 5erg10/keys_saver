@@ -37,6 +37,32 @@ class AddKeyState extends ConsumerState<AddKey> {
 
   bool textObscured = true;
 
+  bool get _hasUnsavedChanges =>
+      inputValues['titleValue']!.isNotEmpty ||
+      inputValues['userValue']!.isNotEmpty ||
+      inputValues['passWValue']!.isNotEmpty;
+
+  Future<bool> _confirmDiscard(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('¿Descartar cambios?'),
+            content: const Text('Tienes datos sin guardar. ¿Seguro que quieres salir?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Salir'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context){
 
@@ -73,9 +99,17 @@ class AddKeyState extends ConsumerState<AddKey> {
       }
     }
 
-    return Scaffold(
-      body: GestureDetector(
-        onTap: removeFocus,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (!_hasUnsavedChanges || await _confirmDiscard(context)) {
+          if (context.mounted) Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        body: GestureDetector(
+          onTap: removeFocus,
         child: SafeArea(
           child: CustomScrollView(
             slivers: [
@@ -186,7 +220,8 @@ class AddKeyState extends ConsumerState<AddKey> {
           )
         ),
       ),
-    );
+    ),
+  );
   }
 }
 

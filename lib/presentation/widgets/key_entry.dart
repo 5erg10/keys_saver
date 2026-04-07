@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:keys_saver/config/constants/colors.dart';
 import 'package:keys_saver/config/extensions/color_from_hex.dart';
@@ -33,9 +34,12 @@ class KeyEntry extends StatelessWidget {
             child: Row(
               children: [
                 const SizedBox(width: 10.0),
-                const Icon(
-                  Icons.enhance_photo_translate,
-                  size: 40.0,
+                Transform.rotate(
+                  angle: -pi / 2,
+                  child: const Icon(
+                    Icons.vpn_key_outlined,
+                    size: 32.0,
+                  ),
                 ),
                 const SizedBox(width: 20.0),
                 ConstrainedBox(

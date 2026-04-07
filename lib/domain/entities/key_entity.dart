@@ -1,15 +1,13 @@
-import 'package:isar/isar.dart';
-
 class KeyEntry {
-  Id id;
-  String titulo;
-  String user;
-  String passW;
+  final int id;
+  final String titulo;
+  final String user;
+  final String passW;
 
-  KeyEntry({
+  const KeyEntry({
     required this.id,
     required this.titulo,
     required this.user,
-    required this.passW
+    required this.passW,
   });
 }

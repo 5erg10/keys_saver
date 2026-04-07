@@ -1,7 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
-import 'package:keys_saver/domain/datasorces/local_datasource.dart';
+import 'package:keys_saver/domain/datasources/local_datasource.dart';
 import 'package:keys_saver/domain/models/app_config_collection.dart';
 import 'package:keys_saver/domain/models/app_credentials.dart';
 import 'package:keys_saver/domain/models/keys_collection.dart';
@@ -21,7 +22,7 @@ class IsarDatasource extends LocalDatasource {
     final Directory dir = await getApplicationDocumentsDirectory();
 
     if ( Isar.instanceNames.isEmpty ) {
-      return await Isar.open([ KeyValuesSchema, AppConfigSchema, AppCredentialsSchema ], inspector: true, directory: dir.path );
+      return await Isar.open([ KeyValuesSchema, AppConfigSchema, AppCredentialsSchema ], inspector: kDebugMode, directory: dir.path );
     }
     return Future.value(Isar.getInstance());
   }
@@ -32,12 +33,11 @@ class IsarDatasource extends LocalDatasource {
 
     final List<KeyValues> keysList = await isar.keyValues.where().findAll();
 
-    keysList.map((key) {
+    for (final key in keysList) {
       key.passW = EncrypterService.decrypt(key.passW, ncrK);
       key.user = EncrypterService.decrypt(key.user, ncrK);
       key.titulo = EncrypterService.decrypt(key.titulo, ncrK);
-      return key;
-    }).toList();
+    }
 
     return keysList;
   }
@@ -82,23 +82,22 @@ class IsarDatasource extends LocalDatasource {
   @override
   Future<AppConfig?> recoverAppConfig() async {
     final isar = await db;
-    final data = await isar.appConfigs.where().findAll();
-    return data.isEmpty ? null : data[0];
+    return isar.appConfigs.where().findFirst();
   }
 
   @override
   Future<void> saveAppConfig(AppConfig config) async {
     final isar = await db;
-    final recoverConfig = await isar.appConfigs.where().findAll();
-    isar.writeTxnSync(() {
-      isar.appConfigs.putSync(
-        recoverConfig.isEmpty 
-        ? config 
-        : recoverConfig[0]
-          ..darkModeEnabled = config.darkModeEnabled
-          ..enableConfigTheme = config.enableConfigTheme
-      );
-    });
+    final existing = await isar.appConfigs.where().findFirst();
+    AppConfig toSave;
+    if (existing != null) {
+      existing.darkModeEnabled = config.darkModeEnabled;
+      existing.enableConfigTheme = config.enableConfigTheme;
+      toSave = existing;
+    } else {
+      toSave = config;
+    }
+    isar.writeTxnSync(() => isar.appConfigs.putSync(toSave));
   }
   
   @override

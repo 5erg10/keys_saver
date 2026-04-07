@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:keys_saver/config/constants/colors.dart';
 import 'package:keys_saver/config/extensions/color_from_hex.dart';
 
-TextStyle googleFont = GoogleFonts.lato(
-  textStyle: const TextStyle(),
-);
+const String _fontFamily = 'Lato';
 
-TextStyle lightTextStyle = googleFont.copyWith(
+TextStyle lightTextStyle = TextStyle(
+  fontFamily: _fontFamily,
   color: HexColor.fromHex(AppColors.primary800),
-  fontWeight: FontWeight.w100
+  fontWeight: FontWeight.w300,
 );
 
-TextStyle darkTextStyle = googleFont.copyWith(
+TextStyle darkTextStyle = TextStyle(
+  fontFamily: _fontFamily,
   color: HexColor.fromHex(AppColors.primary50),
-  fontWeight: FontWeight.w100
+  fontWeight: FontWeight.w300,
 );
 
 TextStyle lightLargeTextStyle = lightTextStyle.copyWith(

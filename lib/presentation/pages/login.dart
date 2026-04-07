@@ -1,34 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:keys_saver/domain/entities/entities.dart';
 import 'package:keys_saver/domain/models/app_credentials.dart';
+import 'package:keys_saver/presentation/providers/providers.dart';
 import 'package:keys_saver/presentation/widgets/widgets.dart';
-import '../providers/providers.dart';
 
-enum OnBoardSteps { noAuth, needPasskey, loading, needStoragePermmisions, noBiometrics }
-class Login extends StatefulWidget {
+enum OnBoardSteps { noAuth, needPasskey, loading, noBiometrics }
+
+class Login extends ConsumerStatefulWidget {
   const Login({super.key});
 
   @override
   LoginState createState() => LoginState();
 }
 
-class LoginState extends State<Login> {
+class LoginState extends ConsumerState<Login> {
 
-  bool completeLoginAndConfig = false;
   bool authChecked = false;
-  bool showCreatePrivateKey = false;
   bool haveBiometrics = false;
 
   AppCredentials? userManualCredentials;
 
   OnBoardSteps step = OnBoardSteps.loading;
-
-  DevicePermissionsController permissionsController = Get.find();
 
   void removeFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,43 +39,56 @@ class LoginState extends State<Login> {
   }
 
   void saveUserCredentials(String privKey) async {
-    final bool userSaved = haveBiometrics ? true : await Get.put(ManualCredentialsController()).saveUserCredentials(userManualCredentials!, privKey);
+    final bool userSaved = haveBiometrics
+        ? true
+        : await ref.read(manualCredentialsProvider.notifier).saveUserCredentials(
+              userManualCredentials!,
+              privKey,
+            );
     if (mounted) {
-      userSaved ? navigateToHome() : CustomSnackbar(context: context, text: 'Error al guardar datos de usuario', backGroundColor: Colors.red);
+      if (userSaved) {
+        navigateToHome();
+      } else {
+        CustomSnackbar(
+          context: context,
+          text: 'Error al guardar datos de usuario',
+          backGroundColor: Colors.red,
+        ).showSnackBar();
+      }
     }
   }
 
-  void onPrivKeySubmit(String privKey) async  {
+  void onPrivKeySubmit(String privKey) async {
     removeFocus();
-    final bool passkeySuccess = await Get.put(PassKeyController()).writeSec(privKey);
+    final bool passkeySuccess = await ref.read(passKeyProvider.notifier).writeSec(privKey);
     if (mounted) {
-      passkeySuccess ? saveUserCredentials(privKey) : CustomSnackbar(context: context, text: 'Error al guardar la key', backGroundColor: Colors.red);
+      if (passkeySuccess) {
+        saveUserCredentials(privKey);
+      } else {
+        CustomSnackbar(
+          context: context,
+          text: 'Error al guardar la key',
+          backGroundColor: Colors.red,
+        ).showSnackBar();
+      }
     }
-  }
-
-  void requestStoragePermissions() {
-    Get.put(DevicePermissionsController()).checkStoragePermission();
   }
 
   void checkPassKeyCreated() async {
-    final recoverPassKey = await Get.put(PassKeyController()).readSec();
+    final recoverPassKey = await ref.read(passKeyProvider.notifier).readSec();
     if (recoverPassKey == null) {
-      setState(() {
-        step = OnBoardSteps.needPasskey;
-      });
+      setState(() => step = OnBoardSteps.needPasskey);
     } else {
       navigateToHome();
     }
   }
 
   void createManualCredentials(String user, String password) async {
+    final AppCredentials newUserCredentials = AppCredentials(user: user, passW: password);
+    final String? currentPassKey = await ref.read(passKeyProvider.notifier).readSec();
 
-    AppCredentials newUserCrendetials = AppCredentials(user: user, passW: password);
-
-    final String? currentPassKey = await Get.put(PassKeyController()).readSec();
-    
     setState(() {
-      userManualCredentials = newUserCrendetials;
+      userManualCredentials = newUserCredentials;
       if (currentPassKey != null) {
         navigateToHome();
       } else {
@@ -89,10 +98,11 @@ class LoginState extends State<Login> {
   }
 
   void checkAuthStatus() async {
-
-    final AuthState authStatus = await Get.put(BiometricAuth()).authenticate();
-    final String? currentPassKey = await Get.put(PassKeyController()).readSec();
-    final AppCredentials? currentCredentials = currentPassKey != null ? await Get.put(ManualCredentialsController()).recoverCredentials(currentPassKey) : null;
+    final AuthState authStatus = await ref.read(biometricProvider.notifier).authenticate();
+    final String? currentPassKey = await ref.read(passKeyProvider.notifier).readSec();
+    final AppCredentials? currentCredentials = currentPassKey != null
+        ? await ref.read(manualCredentialsProvider.notifier).recoverCredentials(currentPassKey)
+        : null;
 
     haveBiometrics = authStatus.haveBiometrics;
 
@@ -107,16 +117,11 @@ class LoginState extends State<Login> {
     }
   }
 
-  void checkStoragePermissions() async {
-    bool permissionsGranted = await Get.put( DevicePermissionsController()).checkStoragePermission();
-    permissionsGranted ? checkAuthStatus() : setState(() => step = OnBoardSteps.needStoragePermmisions);
-  }
-
   @override
   void initState() {
     super.initState();
     if (!authChecked) {
-      checkStoragePermissions();
+      checkAuthStatus();
     }
   }
 
@@ -127,21 +132,24 @@ class LoginState extends State<Login> {
           height: double.infinity,
           width: double.infinity,
           child: Center(
-            child: CustomLoading(label: 'cargando configuracion ...', textColor: Theme.of(context).primaryColor),
+            child: CustomLoading(
+              label: 'cargando configuracion ...',
+              textColor: Theme.of(context).primaryColor,
+            ),
           ),
         );
 
       case OnBoardSteps.noBiometrics:
-        return ManualCredentialsForm(userCredentials: userManualCredentials, onSubmit: createManualCredentials);
+        return ManualCredentialsForm(
+          userCredentials: userManualCredentials,
+          onSubmit: createManualCredentials,
+        );
 
       case OnBoardSteps.noAuth:
-        return Container();
+        return const SizedBox.shrink();
 
       case OnBoardSteps.needPasskey:
         return PrivateKeyForm(onSubmit: onPrivKeySubmit);
-
-      case OnBoardSteps.needStoragePermmisions:
-        return RequestStoragePermissionsModal(onClick: requestStoragePermissions);
     }
   }
 

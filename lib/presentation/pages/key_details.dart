@@ -6,7 +6,7 @@ import 'package:keys_saver/config/extensions/bold_substring.dart';
 import 'package:keys_saver/config/extensions/color_from_hex.dart';
 import 'package:keys_saver/domain/models/keys_collection.dart';
 import 'package:keys_saver/presentation/providers/keys_provider.dart';
-import 'package:keys_saver/presentation/widgets/dinamyc_input.dart';
+import 'package:keys_saver/presentation/widgets/dynamic_input.dart';
 
 class KeyDetails extends ConsumerStatefulWidget {
 
@@ -29,11 +29,30 @@ class KeyDetailsState extends ConsumerState<KeyDetails> {
 
   late KeyValues? keyData;
 
-  void getKeyDetails() async {
-
+  void getKeyDetails() {
     final List<KeyValues>? keysList = ref.read(keysDataProvider).keysList;
-
     keyData = keysList?.firstWhere((element) => element.id == widget.entryId);
+  }
+
+  Future<bool> _confirmDiscard(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('¿Descartar cambios?'),
+            content: const Text('Tienes cambios sin guardar. ¿Seguro que quieres salir?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Salir'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
@@ -44,7 +63,7 @@ class KeyDetailsState extends ConsumerState<KeyDetails> {
 
   @override
   Widget build(BuildContext context){
-    
+
      void removeFocus() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         FocusManager.instance.primaryFocus?.unfocus();
@@ -60,13 +79,22 @@ class KeyDetailsState extends ConsumerState<KeyDetails> {
 
     void onInputValueChanged(String inputName, String value){
       setState(() {
+        formPristine = false;
         if( inputName == 'titulo' ) keyData!.titulo = value;
         if( inputName == 'user' ) keyData!.user = value;
         if( inputName == 'passW' ) keyData!.passW = value;
       });
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (formPristine || await _confirmDiscard(context)) {
+          if (context.mounted) Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
       body: GestureDetector(
         onTap: removeFocus,
         child: SafeArea(
@@ -99,21 +127,21 @@ class KeyDetailsState extends ConsumerState<KeyDetails> {
                   child: Column(
                     children: [
                       const SizedBox(height: 40.0),
-                      DinamycInput(
+                      DynamicInput(
                         textValue: keyData?.titulo ?? '',
                         title: 'Título: ',
                         placeholder: 'Introduce un titulo',
                         onValueChange: (String value) => onInputValueChanged('titulo', value),
                       ),
                       const SizedBox(height: 20.0),
-                      DinamycInput(
+                      DynamicInput(
                         textValue: keyData?.user ?? '',
                         title: 'Usuario: ',
                         placeholder: 'Introduce el usuario ...',
                         onValueChange: (String value) => onInputValueChanged('user', value),
                       ),
                       const SizedBox(height: 20.0),
-                      DinamycInput(
+                      DynamicInput(
                         textValue: keyData?.passW ?? '',
                         title: 'PassWord: ',
                         placeholder: 'Introduce la contraseña ...',
@@ -142,6 +170,7 @@ class KeyDetailsState extends ConsumerState<KeyDetails> {
           )
         ),
       ),
-    );
+    ),
+  );
   }
 }
